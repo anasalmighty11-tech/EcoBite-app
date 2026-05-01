@@ -31,10 +31,20 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  video_player: ^2.8.1
+  google_maps_flutter: ^2.5.3
+  intl_phone_number_input: ^0.7.4
+  image_picker: ^1.0.7
+  dio: ^5.4.1
+  geolocator: ^10.1.0
+  
+
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
+  geocoding: ^4.0.0
+  url_launcher: ^6.3.2
 
 dev_dependencies:
   flutter_test:
@@ -46,6 +56,18 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.13.1
+  flutter_native_splash: ^2.4.1
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/EcoBiteLogo1.png"
+
+flutter_native_splash:
+  color: "#084D0B"
+  android: true
+  ios: true
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -62,6 +84,12 @@ flutter:
     - assets/step2.png  
     - assets/step3.png
     - assets/step4.png 
+    - assets/video_2026-04-25_12-41-26.mp4
+    - assets/EcoBiteLogo1.png
+    - assets/GoogleLogo.jpg
+    - assets/facebook.jpg
+    - assets/AppleLogo.jpg
+    
 
   # https://flutter.dev/to/resolution-aware-images
 

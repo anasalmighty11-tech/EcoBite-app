@@ -1,6 +1,16 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:test_eco/screens/HomePage.dart';
+import 'package:video_player/video_player.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:intl_phone_number_input/intl_phone_number_input.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:dio/dio.dart';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
+import 'screens/register.dart';
 
 const Color primary500 = Color(0xFFFF6B4A);
 const Color activeIndicator = Color(0xFFFF826C);
@@ -30,6 +40,7 @@ class EcoBiteSplashScreen extends StatefulWidget {
 }
 
 class _EcoBiteSplashScreenState extends State<EcoBiteSplashScreen> {
+  late VideoPlayerController _videoController;
   double _progressValue = 0.0;
   bool _showContent = false;
   bool _isWelcomeScreen = false;
@@ -37,26 +48,34 @@ class _EcoBiteSplashScreenState extends State<EcoBiteSplashScreen> {
   @override
   void initState() {
     super.initState();
+    // 1. Hide the status bar for that clean look
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+
+    // 2. Initialize the video using your specific filename
+    _videoController =
+        VideoPlayerController.asset('assets/video_2026-04-25_12-41-26.mp4')
+          ..initialize().then((_) {
+            setState(
+              () {},
+            ); // Refresh once the video is ready in the background
+          });
+
     _startLoading();
   }
 
   @override
   void dispose() {
-    SystemChrome.setEnabledSystemUIMode(
-      SystemUiMode.manual,
-      overlays: SystemUiOverlay.values,
-    );
+    _videoController.dispose(); // Important: clean up memory
     super.dispose();
   }
 
   void _startLoading() {
-    // 1. Brief delay before showing logo/text (Loading_Start -> Loading_Middle)
+    // Show logo after half a second
     Timer(const Duration(milliseconds: 500), () {
       setState(() => _showContent = true);
     });
 
-    // 2. Animate the progress bar
+    // Animate the progress bar
     Timer.periodic(const Duration(milliseconds: 100), (timer) {
       setState(() {
         if (_progressValue < 1.0) {
@@ -70,17 +89,18 @@ class _EcoBiteSplashScreenState extends State<EcoBiteSplashScreen> {
   }
 
   void _transitionToWelcome() {
-    Timer(const Duration(milliseconds: 500), () {
+    setState(() {
+      _isWelcomeScreen = true;
+      _videoController.play(); // Start the fruit stacking animation
+    });
+
+    // Stay on this video for exactly 4 seconds as requested
+    Timer(const Duration(seconds: 4), () {
       if (mounted) {
-        setState(() => _isWelcomeScreen = true);
-        Timer(const Duration(milliseconds: 2500), () {
-          if (mounted) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const OnboardingScreen()),
-            );
-          }
-        });
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const OnboardingScreen()),
+        );
       }
     });
   }
@@ -90,17 +110,70 @@ class _EcoBiteSplashScreenState extends State<EcoBiteSplashScreen> {
     return Scaffold(
       body: AnimatedSwitcher(
         duration: const Duration(milliseconds: 800),
-        child: _isWelcomeScreen ? _buildWelcomeScreen() : _buildLoadingScreen(),
+        child: _isWelcomeScreen
+            ? _buildWelcomeVideoScreen()
+            : _buildLoadingScreen(),
       ),
     );
   }
 
+  // --- NEW VIDEO SCREEN ---
+  Widget _buildWelcomeVideoScreen() {
+    return Container(
+      key: const ValueKey('welcome'),
+      width: double.infinity,
+      height: double.infinity,
+      color: Colors.black,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          _videoController.value.isInitialized
+              ? FittedBox(
+                  fit: BoxFit.cover, // Ensures video fills the whole screen
+                  child: SizedBox(
+                    width: _videoController.value.size.width,
+                    height: _videoController.value.size.height,
+                    child: VideoPlayer(_videoController),
+                  ),
+                )
+              : const Center(
+                  child: CircularProgressIndicator(color: Colors.white),
+                ),
+
+          // Text Overlay
+          Positioned(
+            bottom: 120,
+            left: 0,
+            right: 0,
+            child: Column(
+              children: [
+                const Text(
+                  "Welcome to",
+                  style: TextStyle(color: Colors.white, fontSize: 18),
+                ),
+                const Text(
+                  "ECO BITE",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 40,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- THE ORIGINAL LOADING SCREEN (KEEP THIS) ---
   Widget _buildLoadingScreen() {
     return Container(
       key: const ValueKey('loading'),
       width: double.infinity,
       height: double.infinity,
-      decoration: BoxDecoration(color: const Color(0xFF084D0B)),
+      decoration: const BoxDecoration(color: Color(0xFF084D0B)),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -108,25 +181,13 @@ class _EcoBiteSplashScreenState extends State<EcoBiteSplashScreen> {
           AnimatedOpacity(
             opacity: _showContent ? 1.0 : 0.0,
             duration: const Duration(milliseconds: 500),
-            child: Column(
-              children: [
-                Image.asset('assets/logo3.png', height: 450),
-                const SizedBox(height: 20),
-              ],
-            ),
+            child: Image.asset('assets/logo3.png', height: 450),
           ),
           const Spacer(flex: 3),
-          AnimatedOpacity(
-            opacity: _showContent ? 1.0 : 0.0,
-            duration: const Duration(milliseconds: 500),
-            child: const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 40),
-              child: Text(
-                "As fast as lightning,\nas delicious as thunder!",
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white, fontSize: 16),
-              ),
-            ),
+          const Text(
+            "As fast as lightning,\nas delicious as thunder!",
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.white, fontSize: 16),
           ),
           const SizedBox(height: 30),
           Padding(
@@ -140,48 +201,6 @@ class _EcoBiteSplashScreenState extends State<EcoBiteSplashScreen> {
           ),
           const Spacer(),
         ],
-      ),
-    );
-  }
-
-  Widget _buildWelcomeScreen() {
-    return Container(
-      key: const ValueKey('welcome'),
-      width: double.infinity,
-      height: double.infinity,
-      decoration: const BoxDecoration(
-        image: DecorationImage(
-          image: AssetImage('assets/welcome_bg.png'),
-          fit: BoxFit.cover,
-        ),
-      ),
-      child: Container(
-        color: Colors.black.withOpacity(0.3),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(32),
-              child: const Column(
-                children: [
-                  Text(
-                    "Welcome to",
-                    style: TextStyle(color: Colors.white, fontSize: 18),
-                  ),
-                  Text(
-                    "ECO BITE",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 50),
-          ],
-        ),
       ),
     );
   }
@@ -328,8 +347,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             );
             setState(() => _isAnimating = false);
           } else {
-            // TODO: Navigate to your Dashboard or Login page
-            print("Navigate to Login");
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const EcoBiteHomeScreen(),
+              ),
+            );
           }
         },
         child: Text(
@@ -359,15 +382,21 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         ),
         onPressed: () {
           if (!isLastPage) {
-            // This jumps directly to the last page (index 3)
+            // This jumps directly to the last page (Step 4)
             _pageController.animateToPage(
               _pages.length - 1,
               duration: const Duration(milliseconds: 600),
               curve: Curves.fastOutSlowIn,
             );
           } else {
-            // This is the logic for when they are already on Step 4
-            print("Navigate to Login / Registration Page");
+            // 1. First, make sure you have imported the file at the top of main.dart:
+            // import 'HomePage.dart';
+
+            // 2. This replaces the print statement and actually moves the screen
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => RegisterScreen()),
+            );
           }
         },
         child: Text(
@@ -377,6 +406,361 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             fontSize: 16,
             fontWeight: FontWeight.bold,
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class ProfileSetupScreen extends StatefulWidget {
+  const ProfileSetupScreen({super.key});
+
+  @override
+  State<ProfileSetupScreen> createState() => _ProfileSetupScreenState();
+}
+
+class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
+  static const Color primary500 = Color(0xFFFF6B4A);
+  static const Color neutral50 = Color(0xFFF9FAFB);
+
+  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _dobController = TextEditingController();
+  final TextEditingController _locationController = TextEditingController();
+
+  File? _imageFile;
+  String? _selectedGender;
+  PhoneNumber _number = PhoneNumber(isoCode: 'DZ');
+
+  @override
+  void dispose() {
+    _phoneController.dispose();
+    _emailController.dispose();
+    _nameController.dispose();
+    _dobController.dispose();
+    _locationController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submitProfileToBackend() async {
+    final dio = Dio();
+
+    dio.options.headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'Authorization': 'Bearer YOUR_FRIENDS_API_KEY_HERE', // Put the key here
+    };
+
+    FormData formData = FormData.fromMap({
+      "name": _nameController.text,
+      "email": _emailController.text,
+      "phone": _number.phoneNumber,
+      "dob": _dobController.text,
+      "gender": _selectedGender,
+      "location": _locationController.text,
+      if (_imageFile != null)
+        "profile_image": await MultipartFile.fromFile(
+          _imageFile!.path,
+          filename: "avatar.jpg",
+        ),
+    });
+
+    try {
+      // 2. Change this to the real URL your friend gives you
+      final response = await dio.post(
+        "https://YOUR_FRIEND_SERVER_URL.com/api/profile",
+        data: formData,
+      );
+
+      if (response.statusCode == 200) {
+        // Success! Navigate home
+      }
+    } catch (e) {
+      print("Connection failed: $e");
+    }
+
+    try {
+      // Simulation of API Call
+      // final response = await dio.post("https://api.friend.com/v1/profile", data: formData);
+
+      print("Profile setup successful!");
+
+      if (mounted) {
+        // NAVIGATE TO HOME SCREEN
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const EcoBiteHomeScreen()),
+          (route) => false, // Clears the stack so user can't go back to setup
+        );
+      }
+    } catch (e) {
+      print("Error: $e");
+    }
+  }
+
+  Future<void> _pickImage() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+    if (image != null) setState(() => _imageFile = File(image.path));
+  }
+
+  void _openMapPicker() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      enableDrag: false,
+      builder: (context) => SizedBox(
+        height: MediaQuery.of(context).size.height * 0.8,
+        child: GoogleMap(
+          initialCameraPosition: const CameraPosition(
+            target: LatLng(36.7538, 3.0588),
+            zoom: 12,
+          ),
+          gestureRecognizers: {
+            Factory<OneSequenceGestureRecognizer>(
+              () => EagerGestureRecognizer(),
+            ),
+          },
+          scrollGesturesEnabled: true,
+          zoomGesturesEnabled: true,
+          onTap: (LatLng latLng) {
+            setState(() {
+              _locationController.text =
+                  "${latLng.latitude}, ${latLng.longitude}";
+            });
+            Navigator.pop(context);
+          },
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text(
+          "Your Profile",
+          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+      ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: IntrinsicHeight(
+                child: Column(
+                  children: [
+                    const SizedBox(height: 20),
+                    Center(
+                      child: GestureDetector(
+                        onTap: _pickImage,
+                        child: Stack(
+                          children: [
+                            CircleAvatar(
+                              radius: 65,
+                              backgroundColor: neutral50,
+                              backgroundImage: _imageFile != null
+                                  ? FileImage(_imageFile!)
+                                  : null,
+                              child: _imageFile == null
+                                  ? Icon(
+                                      Icons.person,
+                                      size: 70,
+                                      color: Colors.grey[300],
+                                    )
+                                  : null,
+                            ),
+                            const Positioned(
+                              bottom: 0,
+                              right: 5,
+                              child: CircleAvatar(
+                                radius: 18,
+                                backgroundColor: primary500,
+                                child: Icon(
+                                  Icons.camera_alt,
+                                  color: Colors.white,
+                                  size: 18,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: neutral50,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: InternationalPhoneNumberInput(
+                        onInputChanged: (PhoneNumber number) =>
+                            _number = number,
+                        initialValue: _number,
+                        textFieldController: _phoneController,
+                        countries: const ['DZ'],
+                        selectorConfig: const SelectorConfig(
+                          selectorType: PhoneInputSelectorType.BOTTOM_SHEET,
+                          showFlags: true,
+                        ),
+                        inputDecoration: const InputDecoration(
+                          border: InputBorder.none,
+                          hintText: "Phone Number",
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    _buildField(controller: _emailController, hint: "Email"),
+                    _buildField(controller: _nameController, hint: "Full Name"),
+                    _buildField(
+                      controller: _dobController,
+                      hint: "--/--/----",
+                      suffix: Icons.calendar_today_outlined,
+                      readOnly: true,
+                      onTap: () async {
+                        DateTime? picked = await showDatePicker(
+                          context: context,
+                          initialDate: DateTime.now(),
+                          firstDate: DateTime(1950),
+                          lastDate: DateTime.now(),
+                        );
+                        if (picked != null) {
+                          setState(
+                            () => _dobController.text =
+                                "${picked.day}/${picked.month}/${picked.year}",
+                          );
+                        }
+                      },
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: neutral50,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          isExpanded: true,
+                          value: _selectedGender,
+                          hint: const Text("Gender"),
+                          items: ["Male", "Female"]
+                              .map(
+                                (s) =>
+                                    DropdownMenuItem(value: s, child: Text(s)),
+                              )
+                              .toList(),
+                          onChanged: (v) => setState(() => _selectedGender = v),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    _buildField(
+                      controller: _locationController,
+                      hint: "Your Location",
+                      suffix: Icons.location_on_outlined,
+                      onSuffixTap: _openMapPicker,
+                    ),
+                    const Spacer(),
+                    const SizedBox(height: 40),
+
+                    // --- UPDATED BUTTON ---
+                    SizedBox(
+                      width: double.infinity,
+                      height: 56,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: primary500,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(28),
+                          ),
+                          elevation: 0,
+                        ),
+                        onPressed: _submitProfileToBackend,
+                        child: const Text(
+                          "Continue",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 56,
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: Colors.grey.shade200),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(28),
+                          ),
+                        ),
+                        onPressed: () => print("Skipped"),
+                        child: const Text(
+                          "Skip",
+                          style: TextStyle(
+                            color: primary500,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildField({
+    required TextEditingController controller,
+    required String hint,
+    IconData? suffix,
+    bool readOnly = false,
+    VoidCallback? onTap,
+    VoidCallback? onSuffixTap,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: neutral50,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: TextField(
+        controller: controller,
+        readOnly: readOnly,
+        onTap: onTap,
+        decoration: InputDecoration(
+          hintText: hint,
+          contentPadding: const EdgeInsets.all(16),
+          border: InputBorder.none,
+          suffixIcon: suffix != null
+              ? IconButton(
+                  icon: Icon(suffix, color: Colors.grey),
+                  onPressed: onSuffixTap ?? onTap,
+                )
+              : null,
         ),
       ),
     );
