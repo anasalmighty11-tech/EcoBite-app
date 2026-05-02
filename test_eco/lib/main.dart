@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:test_eco/screens/HomePage.dart';
+import 'package:test_eco/screens/Home/HomePage.dart';
+import 'package:test_eco/screens/authentication/register.dart';
+
 import 'package:video_player/video_player.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl_phone_number_input/intl_phone_number_input.dart';
@@ -10,7 +12,7 @@ import 'package:dio/dio.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
-import 'screens/register.dart';
+
 
 const Color primary500 = Color(0xFFFF6B4A);
 const Color activeIndicator = Color(0xFFFF826C);

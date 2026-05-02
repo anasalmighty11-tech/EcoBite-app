@@ -1,7 +1,8 @@
-import 'package:test_eco/screens/HomePage.dart';
+
+import 'package:test_eco/screens/Home/HomePage.dart';
 import 'package:test_eco/services/AuthService.dart';
 import 'package:flutter/material.dart';
-import 'package:test_eco/screens/register.dart';
+import 'register.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});

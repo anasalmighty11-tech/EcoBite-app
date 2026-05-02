@@ -1,9 +1,11 @@
-import 'package:test_eco/screens/ProfilePage.dart';
-import 'package:test_eco/screens/chatListPage.dart';
+
+import 'package:test_eco/screens/chat/chatListPage.dart';
+import 'package:test_eco/screens/food/AddFood.dart';
+import 'package:test_eco/screens/locations/Mylocations.dart';
+import 'package:test_eco/screens/profile/ProfilePage.dart';
 import 'package:test_eco/services/FoodService.dart';
 import 'package:flutter/material.dart';
-import 'package:test_eco/screens/AddFood.dart';
-import 'package:test_eco/screens/Mylocations.dart';
+
 class EcoBiteHomeScreen extends StatefulWidget {
   const EcoBiteHomeScreen({super.key});
 
